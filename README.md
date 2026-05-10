@@ -109,7 +109,7 @@ platzi download https://platzi.com/cursos/python/ -q 720
 platzi download https://platzi.com/cursos/python -w
 ```
 
-### Configurar pool de proxies SOCKS5 (incluyendo Lime Proxy)
+### Configurar pool de proxies SOCKS5
 
 Puedes configurar un pool de proxies para scraping y descargas. El cliente rota automáticamente al siguiente proxy después del período indicado.
 

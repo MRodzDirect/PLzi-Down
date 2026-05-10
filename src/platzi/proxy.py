@@ -11,7 +11,7 @@ class ProxyPool:
         rotation_seconds: int = 300,
         enabled: bool = False,
     ):
-        self.pool = [url.strip() for url in (pool or []) if url.strip()]
+        self.pool = [clean for url in (pool or []) if (clean := url.strip())]
         self.rotation_seconds = max(1, rotation_seconds)
         self.enabled = enabled
         self._index = 0

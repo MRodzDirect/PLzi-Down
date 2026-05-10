@@ -139,7 +139,7 @@ def proxy_set(
     Configure rotating proxy settings.
     """
     settings = load_settings()
-    filtered_proxy_urls = [item.strip() for item in proxy if item.strip()]
+    filtered_proxy_urls = [clean for item in proxy if (clean := item.strip())]
     proxy_urls = filtered_proxy_urls if filtered_proxy_urls else settings.proxy.pool
 
     if enabled and not proxy_urls:
