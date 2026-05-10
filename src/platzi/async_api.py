@@ -74,7 +74,9 @@ class AsyncPlatzi:
     async def __aenter__(self):
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(headless=self.headless)
-        proxy_url = self.proxy_pool.current_url() if self.browser_proxy_enabled else None
+        proxy_url = (
+            self.proxy_pool.current_url() if self.browser_proxy_enabled else None
+        )
         self._context = await self._new_context(proxy_url)
         self.active_browser_proxy_url = proxy_url
 
@@ -226,7 +228,9 @@ class AsyncPlatzi:
 
                             dst = CHAP_DIR / f"{file_name}{lang}.vtt"
                             Logger.print(f"[{dst.name}]", "[DOWNLOADING-SUBS]")
-                            await download(sub, dst, proxy_pool=self.proxy_pool, **kwargs)
+                            await download(
+                                sub, dst, proxy_pool=self.proxy_pool, **kwargs
+                            )
 
                     # download resources
                     if unit.resources:
@@ -319,7 +323,7 @@ class AsyncPlatzi:
         await self.context.add_cookies(cookies)
 
     async def _new_context(self, proxy_url: str | None = None) -> BrowserContext:
-        kwargs = {
+        kwargs: dict[str, object] = {
             "java_script_enabled": True,
             "is_mobile": True,
         }

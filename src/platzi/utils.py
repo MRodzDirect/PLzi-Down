@@ -113,13 +113,12 @@ async def download(url: str, path: Path, **kwargs):
     if not overwrite and path.exists():
         return
 
-    response: rnet.Response | None = None
     try:
         path.unlink(missing_ok=True)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         client = _new_client(proxy_pool)
-        response: rnet.Response = await client.get(url, allow_redirects=True, **kwargs)
+        response = await client.get(url, allow_redirects=True, **kwargs)
 
         if not response.ok:
             raise Exception(f"[Bad Response: {response.status}]")
@@ -135,7 +134,7 @@ async def download(url: str, path: Path, **kwargs):
         return
 
     finally:
-        if response:
+        if "response" in locals():
             await response.close()
 
 

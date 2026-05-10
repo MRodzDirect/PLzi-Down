@@ -2,7 +2,9 @@ from platzi.proxy import ProxyPool
 
 
 def test_proxy_pool_returns_none_when_disabled():
-    pool = ProxyPool(pool=["socks5://127.0.0.1:9050"], rotation_seconds=30, enabled=False)
+    pool = ProxyPool(
+        pool=["socks5://127.0.0.1:9050"], rotation_seconds=30, enabled=False
+    )
     assert pool.current_url() is None
 
 
