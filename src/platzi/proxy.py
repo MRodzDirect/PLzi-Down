@@ -50,7 +50,7 @@ def new_rnet_client(proxy_pool: ProxyPool | None = None) -> rnet.Client:
 def build_playwright_proxy(proxy_url: str) -> dict[str, str]:
     parsed = urlsplit(proxy_url)
     if not parsed.scheme or not parsed.hostname or not parsed.port:
-        raise ValueError("proxy must include scheme, host and port")
+        raise ValueError("proxy must include scheme, hostname and port")
 
     server = f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
     data = {"server": server}
