@@ -9,6 +9,16 @@ from unidecode import unidecode
 
 from .helpers import retry
 from .logger import Logger
+from .proxy import ProxyPool, build_rnet_proxy
+
+
+def _new_client(proxy_pool: ProxyPool | None = None) -> rnet.Client:
+    kwds: dict = {"impersonate": rnet.Impersonate.Firefox139}
+    if proxy_pool:
+        proxy_url = proxy_pool.current_url()
+        if proxy_url:
+            kwds["proxy"] = build_rnet_proxy(proxy_url)
+    return rnet.Client(**kwds)
 
 
 async def progressive_scroll(
@@ -98,15 +108,17 @@ def get_subtitles_url(content: str) -> list[str] | None:
 @retry()
 async def download(url: str, path: Path, **kwargs):
     overwrite = kwargs.get("overwrite", False)
+    proxy_pool: ProxyPool | None = kwargs.get("proxy_pool")
 
     if not overwrite and path.exists():
         return
 
+    response: rnet.Response | None = None
     try:
         path.unlink(missing_ok=True)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        client = rnet.Client(impersonate=rnet.Impersonate.Firefox139)
+        client = _new_client(proxy_pool)
         response: rnet.Response = await client.get(url, allow_redirects=True, **kwargs)
 
         if not response.ok:
@@ -123,12 +135,14 @@ async def download(url: str, path: Path, **kwargs):
         return
 
     finally:
-        await response.close()
+        if response:
+            await response.close()
 
 
 @retry()
 async def download_styles(url: str, **kwargs):
-    client = rnet.Client(impersonate=rnet.Impersonate.Firefox139)
+    proxy_pool: ProxyPool | None = kwargs.get("proxy_pool")
+    client = _new_client(proxy_pool)
     response: rnet.Response = await client.get(url, allow_redirects=True, **kwargs)
 
     content = await response.text()  # Save content before closing

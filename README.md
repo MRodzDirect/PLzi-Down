@@ -109,6 +109,35 @@ platzi download https://platzi.com/cursos/python/ -q 720
 platzi download https://platzi.com/cursos/python -w
 ```
 
+### Configurar pool de proxies (SOCKS5 / Lime Proxy)
+
+Puedes configurar un pool de proxies para scraping y descargas. El cliente rota automáticamente al siguiente proxy después del período indicado.
+
+```console
+platzi settings proxy set \
+  --enable \
+  --rotation-seconds 120 \
+  --proxy "socks5://usuario:password@proxy1.host:puerto" \
+  --proxy "socks5://usuario:password@proxy2.host:puerto" \
+  --proxy "socks5://usuario:password@proxy3.host:puerto"
+```
+
+Ver configuración actual:
+
+```console
+platzi settings proxy show
+```
+
+Limpiar configuración de proxies:
+
+```console
+platzi settings proxy clear
+```
+
+> [!TIP]
+> Usa `--browser` (default) para aplicar también proxy al scraping con Playwright.
+> Usa `--no-browser` si solo quieres usar proxy para descargas HTTP/m3u8.
+
 ### Borrar Caché
 
 Para borrar la caché de Platzi, usa el comando `clear-cache`.
@@ -134,6 +163,37 @@ platzi clear-cache
 
 > [!TIP]
 > Luego de actualizar el script u obtener algún error inesperado se recomienda limpiar la caché antes de volver a intentar descargar el curso. Puedes hacerlo ejecutando el comando `platzi clear-cache`.
+
+## Empaquetarlo como wheel separado (tu fork privado)
+
+Si no vas a contribuir al fork original, puedes publicar/usar tu propia wheel:
+
+1. Cambia el nombre del paquete en `pyproject.toml`:
+
+```toml
+[tool.poetry]
+name = "platzi-down-custom"
+```
+
+2. Construye los artefactos:
+
+```console
+poetry build
+```
+
+3. Instala localmente la wheel generada:
+
+```console
+pip install dist/platzi_down_custom-*.whl
+```
+
+4. (Opcional) Publica en tu índice privado o PyPI:
+
+```console
+poetry publish --build
+```
+
+Si solo quieres “descargarla” para usarla sin publicar, basta con el paso 2 y compartir el archivo `.whl` en `dist/`.
 
 ## Contribuidores
 

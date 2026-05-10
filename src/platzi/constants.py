@@ -5,6 +5,7 @@ import platformdirs
 APP_NAME = "Platzi"
 SESSION_DIR = Path(platformdirs.user_data_dir(APP_NAME))
 SESSION_FILE = SESSION_DIR / "state.json"  # Cookies are stored here
+SETTINGS_FILE = SESSION_DIR / "settings.json"  # App settings are stored here
 
 LOGIN_URL = "https://platzi.com/login"
 LOGIN_DETAILS_URL = "https://api.platzi.com/api/v1/components/headerv2/user/"

@@ -5,8 +5,13 @@ from rich import print
 from typing_extensions import Annotated
 
 from platzi import AsyncPlatzi, Cache
+from platzi.settings import ProxySettings, load_settings, save_settings
 
 app = typer.Typer(rich_markup_mode="rich")
+settings_app = typer.Typer()
+proxy_app = typer.Typer()
+settings_app.add_typer(proxy_app, name="proxy")
+app.add_typer(settings_app, name="settings")
 
 
 @app.command()
@@ -86,6 +91,78 @@ def clear_cache():
     """
     Cache.clear()
     print("[green]Cache cleared successfully 🗑️[/green]")
+
+
+@proxy_app.command("show")
+def proxy_show():
+    """
+    Show proxy settings.
+    """
+    settings = load_settings()
+    print(settings.proxy.model_dump_json(indent=4))
+
+
+@proxy_app.command("set")
+def proxy_set(
+    proxy: Annotated[
+        list[str],
+        typer.Option(
+            "--proxy",
+            "-p",
+            help="Proxy URL. Repeat the option to build a rotating pool.",
+        ),
+    ] = [],
+    rotation_seconds: Annotated[
+        int,
+        typer.Option(
+            "--rotation-seconds",
+            help="Rotate to the next proxy after this number of seconds.",
+            min=1,
+        ),
+    ] = 300,
+    enabled: Annotated[
+        bool,
+        typer.Option(
+            "--enable/--disable",
+            help="Enable or disable proxy usage.",
+        ),
+    ] = True,
+    browser_enabled: Annotated[
+        bool,
+        typer.Option(
+            "--browser/--no-browser",
+            help="Apply proxy pool to browser scraping pages too.",
+        ),
+    ] = True,
+):
+    """
+    Configure rotating proxy settings.
+    """
+    settings = load_settings()
+    proxy_pool = [item.strip() for item in proxy if item.strip()] or settings.proxy.pool
+
+    if enabled and not proxy_pool:
+        raise typer.BadParameter("Provide at least one --proxy value when enabling.")
+
+    settings.proxy = ProxySettings(
+        enabled=enabled,
+        pool=proxy_pool,
+        rotation_seconds=rotation_seconds,
+        browser_enabled=browser_enabled,
+    )
+    save_settings(settings)
+    print("[green]Proxy settings saved[/green]")
+
+
+@proxy_app.command("clear")
+def proxy_clear():
+    """
+    Clear proxy settings.
+    """
+    settings = load_settings()
+    settings.proxy = ProxySettings()
+    save_settings(settings)
+    print("[green]Proxy settings cleared[/green]")
 
 
 async def _login():

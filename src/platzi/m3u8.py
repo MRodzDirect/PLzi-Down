@@ -13,6 +13,16 @@ from tqdm.asyncio import tqdm
 
 from .constants import HEADERS
 from .helpers import retry
+from .proxy import ProxyPool, build_rnet_proxy
+
+
+def _new_client(proxy_pool: ProxyPool | None = None) -> rnet.Client:
+    kwds: dict = {"impersonate": rnet.Impersonate.Firefox139}
+    if proxy_pool:
+        proxy_url = proxy_pool.current_url()
+        if proxy_url:
+            kwds["proxy"] = build_rnet_proxy(proxy_url)
+    return rnet.Client(**kwds)
 
 
 def ffmpeg_required(func):
@@ -48,6 +58,7 @@ def _extract_streaming_urls(content: str) -> list[str] | None:
 
 async def _ts_dl(url: str, path: Path, **kwargs):
     overwrite = kwargs.get("overwrite", False)
+    proxy_pool: ProxyPool | None = kwargs.get("proxy_pool")
 
     if not overwrite and path.exists():
         return
@@ -55,7 +66,7 @@ async def _ts_dl(url: str, path: Path, **kwargs):
     path.unlink(missing_ok=True)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    client = rnet.Client(impersonate=rnet.Impersonate.Firefox139)
+    client = _new_client(proxy_pool)
     response: rnet.Response = await client.get(url, headers=HEADERS)
 
     try:
@@ -110,6 +121,7 @@ async def _m3u8_dl(
 ) -> None:
     path = path if isinstance(path, Path) else Path(path)
     overwrite = kwargs.get("overwrite", False)
+    proxy_pool: ProxyPool | None = kwargs.get("proxy_pool")
     tmp_dir = kwargs.get("tmp_dir", ".tmp")
     tmp_dir = tmp_dir if isinstance(tmp_dir, Path) else Path(tmp_dir)
 
@@ -122,7 +134,7 @@ async def _m3u8_dl(
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    client = rnet.Client(impersonate=rnet.Impersonate.Firefox139)
+    client = _new_client(proxy_pool)
     response: rnet.Response = await client.get(url, headers=HEADERS)
 
     try:
@@ -205,12 +217,13 @@ async def m3u8_dl(
     quality = 0 if quality == "720" else 1
 
     overwrite = kwargs.get("overwrite", False)
+    proxy_pool: ProxyPool | None = kwargs.get("proxy_pool")
     path = path if isinstance(path, Path) else Path(path)
 
     if not overwrite and path.exists():
         return
 
-    client = rnet.Client(impersonate=rnet.Impersonate.Firefox139)
+    client = _new_client(proxy_pool)
     response: rnet.Response = await client.get(url, headers=HEADERS)
 
     try:
