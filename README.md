@@ -184,7 +184,7 @@ poetry build
 3. Instala localmente la wheel generada:
 
 ```console
-pip install dist/platzi_down_custom-0.7.3-py3-none-any.whl
+pip install dist/platzi_down_custom-X.Y.Z-py3-none-any.whl
 ```
 
 4. (Opcional) Publica en tu índice privado o PyPI:
