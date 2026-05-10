@@ -104,7 +104,7 @@ async def download(url: str, path: Path, **kwargs):
     if not overwrite and path.exists():
         return
 
-    response: rnet.Response | None = None
+    response = None
     try:
         path.unlink(missing_ok=True)
         path.parent.mkdir(parents=True, exist_ok=True)
