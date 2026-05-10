@@ -117,9 +117,9 @@ Puedes configurar un pool de proxies para scraping y descargas. El cliente rota 
 platzi settings proxy set \
   --enable \
   --rotation-seconds 120 \
-  --proxy "socks5://username:password@proxy1.host:puerto" \
-  --proxy "socks5://username:password@proxy2.host:puerto" \
-  --proxy "socks5://username:password@proxy3.host:puerto"
+  --proxy "socks5://username:password@proxy1.host:port" \
+  --proxy "socks5://username:password@proxy2.host:port" \
+  --proxy "socks5://username:password@proxy3.host:port"
 ```
 
 Ver configuración actual:

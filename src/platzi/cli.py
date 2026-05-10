@@ -104,7 +104,7 @@ def proxy_show():
 
 @proxy_app.command("set")
 def proxy_set(
-    proxy: Annotated[
+    proxies: Annotated[
         list[str],
         typer.Option(
             "--proxy",
@@ -139,7 +139,7 @@ def proxy_set(
     Configure rotating proxy settings.
     """
     settings = load_settings()
-    filtered_proxy_urls = [clean for item in proxy if (clean := item.strip())]
+    filtered_proxy_urls = [clean for item in proxies if (clean := item.strip())]
     proxy_urls = filtered_proxy_urls if filtered_proxy_urls else settings.proxy.pool
 
     if enabled and not proxy_urls:
