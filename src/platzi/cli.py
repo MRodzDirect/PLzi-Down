@@ -139,7 +139,8 @@ def proxy_set(
     Configure rotating proxy settings.
     """
     settings = load_settings()
-    proxy_urls = [item.strip() for item in proxy if item.strip()] or settings.proxy.pool
+    filtered_proxy_urls = [item.strip() for item in proxy if item.strip()]
+    proxy_urls = filtered_proxy_urls if filtered_proxy_urls else settings.proxy.pool
 
     if enabled and not proxy_urls:
         raise typer.BadParameter("Provide at least one --proxy value when enabling.")

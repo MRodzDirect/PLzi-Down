@@ -111,8 +111,6 @@ async def download(url: str, path: Path, **kwargs):
 
         client = new_rnet_client(proxy_pool)
         response = await client.get(url, allow_redirects=True, **kwargs)
-        if response is None:
-            raise Exception(f"No response received while downloading {url}")
 
         if not response.ok:
             raise Exception(f"[Bad Response: {response.status}]")
