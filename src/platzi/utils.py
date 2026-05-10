@@ -9,16 +9,7 @@ from unidecode import unidecode
 
 from .helpers import retry
 from .logger import Logger
-from .proxy import ProxyPool, build_rnet_proxy
-
-
-def _new_client(proxy_pool: ProxyPool | None = None) -> rnet.Client:
-    kwds: dict = {"impersonate": rnet.Impersonate.Firefox139}
-    if proxy_pool:
-        proxy_url = proxy_pool.current_url()
-        if proxy_url:
-            kwds["proxy"] = build_rnet_proxy(proxy_url)
-    return rnet.Client(**kwds)
+from .proxy import ProxyPool, new_rnet_client
 
 
 async def progressive_scroll(
@@ -113,12 +104,15 @@ async def download(url: str, path: Path, **kwargs):
     if not overwrite and path.exists():
         return
 
+    response: rnet.Response | None = None
     try:
         path.unlink(missing_ok=True)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        client = _new_client(proxy_pool)
+        client = new_rnet_client(proxy_pool)
         response = await client.get(url, allow_redirects=True, **kwargs)
+        if response is None:
+            raise Exception("No response received")
 
         if not response.ok:
             raise Exception(f"[Bad Response: {response.status}]")
@@ -134,14 +128,14 @@ async def download(url: str, path: Path, **kwargs):
         return
 
     finally:
-        if "response" in locals():
+        if response is not None:
             await response.close()
 
 
 @retry()
 async def download_styles(url: str, **kwargs):
     proxy_pool: ProxyPool | None = kwargs.get("proxy_pool")
-    client = _new_client(proxy_pool)
+    client = new_rnet_client(proxy_pool)
     response: rnet.Response = await client.get(url, allow_redirects=True, **kwargs)
 
     content = await response.text()  # Save content before closing
