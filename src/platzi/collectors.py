@@ -5,6 +5,7 @@ from playwright.async_api import BrowserContext, Page
 from .cache import Cache
 from .constants import PLATZI_URL
 from .models import Chapter, Resource, TypeUnit, Unit, Video
+from .proxy import ProxyPool
 from .utils import download_styles, get_m3u8_url, get_subtitles_url, slugify
 
 
@@ -74,7 +75,9 @@ async def get_draft_chapters(page: Page) -> list[Chapter]:
 
 
 @Cache.cache_async
-async def get_unit(context: BrowserContext, url: str) -> Unit:
+async def get_unit(
+    context: BrowserContext, url: str, proxy_pool: ProxyPool | None = None
+) -> Unit:
     TYPE_SELECTOR = ".VideoPlayer"
     TITLE_SELECTOR = "h1[class*='MaterialHeading']"
     EXCEPTION = Exception("Could not collect unit data")
@@ -183,7 +186,7 @@ async def get_unit(context: BrowserContext, url: str) -> Unit:
             for i in range(count):
                 href = await stylesheet_links.nth(i).get_attribute("href")
                 if href:
-                    stylesheet = await download_styles(href)
+                    stylesheet = await download_styles(href, proxy_pool=proxy_pool)
                     all_css_styles.append(stylesheet)
 
             # Get the content of the <style>

@@ -17,6 +17,8 @@ from .helpers import read_json, write_json
 from .logger import Logger
 from .m3u8 import m3u8_dl
 from .models import TypeUnit, User
+from .proxy import ProxyPool, build_playwright_proxy
+from .settings import load_settings
 from .utils import clean_string, download, progressive_scroll
 
 
@@ -57,17 +59,26 @@ def try_except_request(func):
 
 class AsyncPlatzi:
     def __init__(self, headless=False):
+        settings = load_settings()
         self.loggedin = False
         self.headless = headless
         self.user = None
+        self.proxy_pool = ProxyPool(
+            pool=settings.proxy.pool,
+            rotation_seconds=settings.proxy.rotation_seconds,
+            enabled=settings.proxy.enabled,
+        )
+        self.browser_proxy_enabled = settings.proxy.browser_enabled
+        self.active_browser_proxy_url: str | None = None
 
     async def __aenter__(self):
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(headless=self.headless)
-        self._context = await self._browser.new_context(
-            java_script_enabled=True,
-            is_mobile=True,
+        proxy_url = (
+            self.proxy_pool.current_url() if self.browser_proxy_enabled else None
         )
+        self._context = await self._new_context(proxy_url)
+        self.active_browser_proxy_url = proxy_url
 
         try:
             await self._load_state()
@@ -85,6 +96,7 @@ class AsyncPlatzi:
 
     @property
     async def page(self) -> Page:
+        await self._ensure_context_proxy_rotation()
         return await self._context.new_page()
 
     @property
@@ -182,14 +194,23 @@ class AsyncPlatzi:
 
             # iterate over units
             for jdx, draft_unit in enumerate(draft_chapter.units, 1):
-                unit = await get_unit(self.context, draft_unit.url)
+                await self._ensure_context_proxy_rotation()
+                unit = await get_unit(
+                    self.context, draft_unit.url, proxy_pool=self.proxy_pool
+                )
                 file_name = f"{jdx:02}-{clean_string(unit.title)}"
 
                 # download video
                 if unit.video:
                     dst = CHAP_DIR / f"{file_name}.mp4"
                     Logger.print(f"[{dst.name}]", "[DOWNLOADING-VIDEO]")
-                    await m3u8_dl(unit.video.url, dst, headers=HEADERS, **kwargs)
+                    await m3u8_dl(
+                        unit.video.url,
+                        dst,
+                        headers=HEADERS,
+                        proxy_pool=self.proxy_pool,
+                        **kwargs,
+                    )
 
                     # download subtitles
                     subs = unit.video.subtitles_url
@@ -207,7 +228,9 @@ class AsyncPlatzi:
 
                             dst = CHAP_DIR / f"{file_name}{lang}.vtt"
                             Logger.print(f"[{dst.name}]", "[DOWNLOADING-SUBS]")
-                            await download(sub, dst, **kwargs)
+                            await download(
+                                sub, dst, proxy_pool=self.proxy_pool, **kwargs
+                            )
 
                     # download resources
                     if unit.resources:
@@ -218,7 +241,7 @@ class AsyncPlatzi:
                                 file_name = unquote(os.path.basename(archive))
                                 dst = CHAP_DIR / f"{jdx:02}-{file_name}"
                                 Logger.print(f"[{dst.name}]", "[DOWNLOADING-FILES]")
-                                await download(archive, dst)
+                                await download(archive, dst, proxy_pool=self.proxy_pool)
 
                         # download readings
                         readings = unit.resources.readings_url
@@ -298,3 +321,31 @@ class AsyncPlatzi:
         SESSION_FILE.touch()
         cookies = read_json(SESSION_FILE)
         await self.context.add_cookies(cookies)
+
+    async def _new_context(self, proxy_url: str | None = None) -> BrowserContext:
+        kwargs: dict[str, object] = {
+            "java_script_enabled": True,
+            "is_mobile": True,
+        }
+        if proxy_url:
+            kwargs["proxy"] = build_playwright_proxy(proxy_url)
+        return await self._browser.new_context(**kwargs)
+
+    async def _ensure_context_proxy_rotation(self) -> None:
+        if not self.browser_proxy_enabled:
+            return
+
+        next_proxy_url = self.proxy_pool.current_url()
+        if next_proxy_url == self.active_browser_proxy_url:
+            return
+
+        old_context = self._context
+        cookies = await old_context.cookies()
+
+        self._context = await self._new_context(next_proxy_url)
+        if cookies:
+            await self._context.add_cookies(cookies)
+
+        self.active_browser_proxy_url = next_proxy_url
+        await old_context.close()
+        Logger.info("Proxy rotated")
